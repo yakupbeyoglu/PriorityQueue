@@ -1,0 +1,39 @@
+name: Priority Queue CI
+on:
+  push:
+    branches-ignore:
+      - "hotfix.*"
+jobs:
+  release:
+    name: CI
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Update resources
+        run: |
+          sudo apt-get update -y
+
+      - name: Add g++ 10 for c++ 17 support
+        run: |
+          sudo apt install gcc-10 g++-10
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+          sudo update-alternatives --set gcc /usr/bin/gcc-10
+
+      - name: Create executable
+        working-directory: .
+        run: |
+          sudo cmake  -Bbuild -DCMAKE_BUILD_TYPE=Release
+          sudo make -j12 -C build
+
+      - name: Run ctest
+        working-directory: ./build
+        run: |
+          sudo ctest --verbose
