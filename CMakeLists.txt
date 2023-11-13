@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 cmake_policy(SET CMP0054 NEW)
 
 set(PROJECT_NAME "PriortyQueue")
+set(CMAKE_CXX_STANDARD 17)  # You can replace 14 with the desired C++ standard (e.g., 11, 17, 20)
 
 project(${PROJECT_NAME})
 
@@ -64,3 +65,4 @@ doxygen_add_docs(
     COMMENT "Generating API documentation with Doxygen"
 )
 endif(DOCS)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)  # Adjust the standard accordingly
