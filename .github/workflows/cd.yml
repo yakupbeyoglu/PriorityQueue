@@ -1,0 +1,68 @@
+name: Priority Queue Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Update resources
+        run: |
+          sudo apt-get update -y
+
+      - name: Add g++ 10 for C++ 17 support
+        run: |
+          sudo apt install gcc-10 g++-10
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+          sudo update-alternatives --set gcc /usr/bin/gcc-10
+
+      - name: Install Doxygen requirements
+        run: |
+          sudo apt install -y doxygen graphviz
+          doxygen --version
+          dot -V
+
+      - name: Create executable
+        working-directory: .
+        run: |
+          sudo cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DDOCS=ON
+          sudo make -j12 -C build
+
+      - name: Run ctest
+        working-directory: ./build
+        run: |
+          sudo ctest --verbose
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.DEPLOY_TOKEN }}
+          publish_dir: ./Docs
+
+      - name: Parse Tag Name
+        id: parse_tag
+        run: |
+          TAG_NAME=$(echo "${GITHUB_REF}" | sed 's/refs\/tags\///')
+          VERSION=$(echo "${TAG_NAME}" | sed 's/"//g')
+          echo "::set-output name=VERSION::${VERSION}"
+        
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.parse_tag.outputs.VERSION }}
+          release_name: Release ${{ steps.parse_tag.outputs.VERSION }}
+          body: |
+            Release ${{ steps.parse_tag.outputs.VERSION }}
+            Check [Docs](https://yakupbeyoglu.github.io/PriorityQueue/html/index.html)
